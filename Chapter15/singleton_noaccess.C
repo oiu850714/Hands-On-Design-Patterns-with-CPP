@@ -12,30 +12,32 @@
 #include <iostream>
 
 class Singleton {
-    public:
-    int& get() { return value_; }
+public:
+  int &get() { return value_; }
 
-    private:
-    Singleton() : value_(0) { std::cout << "Singleton::Singleton()" << std::endl; }
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
-    ~Singleton() { std::cout << "Singleton::~Singleton()" << std::endl; }
-    friend Singleton& SingletonInstance();
+private:
+  Singleton() : value_(0) {
+    std::cout << "Singleton::Singleton()" << std::endl;
+  }
+  Singleton(const Singleton &) = delete;
+  Singleton &operator=(const Singleton &) = delete;
+  ~Singleton() { std::cout << "Singleton::~Singleton()" << std::endl; }
+  friend Singleton &SingletonInstance();
 
-    private:
-    int value_;
+private:
+  int value_;
 };
 
-inline Singleton& SingletonInstance() {
-    static Singleton inst;
-    return inst;
+inline Singleton &SingletonInstance() {
+  static Singleton inst;
+  return inst;
 }
 
-void BM_singleton(benchmark::State& state) {
-    for (auto _ : state) {
-        REPEAT(benchmark::DoNotOptimize(++SingletonInstance().get());)
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_singleton(benchmark::State &state) {
+  for (auto _ : state) {
+    REPEAT(benchmark::DoNotOptimize(++SingletonInstance().get());)
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
 BENCHMARK(BM_singleton)->ThreadRange(1, 64);

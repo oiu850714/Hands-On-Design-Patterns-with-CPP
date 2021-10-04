@@ -13,39 +13,39 @@
 
 struct SingletonImpl;
 class Singleton {
-    public:
-    int& get();
+public:
+  int &get();
 
-    private:
-    static SingletonImpl& impl();
+private:
+  static SingletonImpl &impl();
 };
 
 struct SingletonImpl {
-    SingletonImpl() : value_(0) {}
-    int value_;
+  SingletonImpl() : value_(0) {}
+  int value_;
 };
 
-int& Singleton::get() { return impl().value_; }
+int &Singleton::get() { return impl().value_; }
 
-SingletonImpl& Singleton::impl() {
-    static SingletonImpl inst;
-    return inst;
+SingletonImpl &Singleton::impl() {
+  static SingletonImpl inst;
+  return inst;
 }
 
-void BM_singleton(benchmark::State& state) {
-    //Singleton S; // Does not compile - cannot create another one
-    Singleton S;
-    for (auto _ : state) {
-        REPEAT(benchmark::DoNotOptimize(++S.get());)
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_singleton(benchmark::State &state) {
+  // Singleton S; // Does not compile - cannot create another one
+  Singleton S;
+  for (auto _ : state) {
+    REPEAT(benchmark::DoNotOptimize(++S.get());)
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
-void BM_singletons(benchmark::State& state) {
-    for (auto _ : state) {
-        REPEAT(benchmark::DoNotOptimize(++Singleton().get());)
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_singletons(benchmark::State &state) {
+  for (auto _ : state) {
+    REPEAT(benchmark::DoNotOptimize(++Singleton().get());)
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
 BENCHMARK(BM_singleton)->ThreadRange(1, 64);

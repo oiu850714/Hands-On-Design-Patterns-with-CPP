@@ -12,27 +12,26 @@
 #include <iostream>
 
 class Singleton {
-    public:
-    static int& get() { return value_; }
+public:
+  static int &get() { return value_; }
 
-    private:
-    Singleton() = delete;
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
+private:
+  Singleton() = delete;
+  Singleton(const Singleton &) = delete;
+  Singleton &operator=(const Singleton &) = delete;
 
-    private:
-    static int value_;
+private:
+  static int value_;
 };
 int Singleton::value_ = 0;
 
-void BM_singleton(benchmark::State& state) {
-    for (auto _ : state) {
-        REPEAT(benchmark::DoNotOptimize(++Singleton::get());)
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_singleton(benchmark::State &state) {
+  for (auto _ : state) {
+    REPEAT(benchmark::DoNotOptimize(++Singleton::get());)
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
 BENCHMARK(BM_singleton)->ThreadRange(1, 64);
 
 BENCHMARK_MAIN();
-

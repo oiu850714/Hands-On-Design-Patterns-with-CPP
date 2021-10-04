@@ -5,15 +5,15 @@ void f(...) { std::cout << "f(...)" << std::endl; }
 
 struct A {};
 struct B {
-    operator int() const { return 0; }
+  operator int() const { return 0; }
 };
 
 int main() {
-    f(5);
-    f(5l);
-    f(5.0);
-    A a;
-    f(a);
-    B b;
-    f(b);
+  f(5);
+  f(5l);
+  f(5.0);
+  A a;
+  f(a);
+  B b;
+  f(b);
 }

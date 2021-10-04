@@ -11,128 +11,144 @@
 
 namespace ScopeGuardTypeErased {
 class ScopeGuard {
-    public:
-    template <typename Func> ScopeGuard(Func&& func) : commit_(false), func_(func) {}
-    template <typename Func> ScopeGuard(const Func& func) : commit_(false), func_(func) {}
-    ~ScopeGuard() { if (!commit_) func_(); }
-    void commit() const noexcept { commit_ = true; }
-    ScopeGuard(ScopeGuard&& other) : commit_(other.commit_), func_(other.func_) { other.commit(); }
-    private:
-    mutable bool commit_;
-    std::function<void()> func_;
-    ScopeGuard& operator=(const ScopeGuard&) = delete;
+public:
+  template <typename Func>
+  ScopeGuard(Func &&func) : commit_(false), func_(func) {}
+  template <typename Func>
+  ScopeGuard(const Func &func) : commit_(false), func_(func) {}
+  ~ScopeGuard() {
+    if (!commit_)
+      func_();
+  }
+  void commit() const noexcept { commit_ = true; }
+  ScopeGuard(ScopeGuard &&other) : commit_(other.commit_), func_(other.func_) {
+    other.commit();
+  }
+
+private:
+  mutable bool commit_;
+  std::function<void()> func_;
+  ScopeGuard &operator=(const ScopeGuard &) = delete;
 };
-}
+} // namespace ScopeGuardTypeErased
 
 namespace ScopeGuardTemplate {
 class ScopeGuardBase {
-    public:
-    ScopeGuardBase() : commit_(false) {}
-    void commit() const noexcept { commit_ = true; }
+public:
+  ScopeGuardBase() : commit_(false) {}
+  void commit() const noexcept { commit_ = true; }
 
-    protected:
-    ScopeGuardBase(ScopeGuardBase&& other) : commit_(other.commit_) { other.commit(); }
-    ~ScopeGuardBase() {}
-    mutable bool commit_;
+protected:
+  ScopeGuardBase(ScopeGuardBase &&other) : commit_(other.commit_) {
+    other.commit();
+  }
+  ~ScopeGuardBase() {}
+  mutable bool commit_;
 
-    private:
-    ScopeGuardBase& operator=(const ScopeGuardBase&) = delete;
+private:
+  ScopeGuardBase &operator=(const ScopeGuardBase &) = delete;
 };
 
-template <typename Func>
-class ScopeGuard : public ScopeGuardBase {
-    public:
-    ScopeGuard(Func&& func) : func_(func) {}
-    ScopeGuard(const Func& func) : func_(func) {}
-    ~ScopeGuard() { if (!commit_) func_(); }
-    ScopeGuard(ScopeGuard&& other) : ScopeGuardBase(std::move(other)), func_(other.func_) {}
-    private:
-    Func func_;
+template <typename Func> class ScopeGuard : public ScopeGuardBase {
+public:
+  ScopeGuard(Func &&func) : func_(func) {}
+  ScopeGuard(const Func &func) : func_(func) {}
+  ~ScopeGuard() {
+    if (!commit_)
+      func_();
+  }
+  ScopeGuard(ScopeGuard &&other)
+      : ScopeGuardBase(std::move(other)), func_(other.func_) {}
+
+private:
+  Func func_;
 };
 
-template <typename Func>
-ScopeGuard<Func> MakeGuard(Func&& func) {
-    return ScopeGuard<Func>(std::forward<Func>(func));
+template <typename Func> ScopeGuard<Func> MakeGuard(Func &&func) {
+  return ScopeGuard<Func>(std::forward<Func>(func));
 }
-}
+} // namespace ScopeGuardTemplate
 
 inline void noop() {}
 
-void BM_type_erased_noop(benchmark::State& state) {
-    for (auto _ : state) {
-        REPEAT({ScopeGuardTypeErased::ScopeGuard SG([&] { noop(); });})
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_type_erased_noop(benchmark::State &state) {
+  for (auto _ : state) {
+    REPEAT({ ScopeGuardTypeErased::ScopeGuard SG([&] { noop(); }); })
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
-void BM_template_noop(benchmark::State& state) {
-    for (auto _ : state) {
-        REPEAT({auto SG = ScopeGuardTemplate::MakeGuard([&] { noop(); });})
-    }
-    state.SetItemsProcessed(32*state.iterations());
+void BM_template_noop(benchmark::State &state) {
+  for (auto _ : state) {
+    REPEAT({ auto SG = ScopeGuardTemplate::MakeGuard([&] { noop(); }); })
+  }
+  state.SetItemsProcessed(32 * state.iterations());
 }
 
-void BM_free(benchmark::State& state) {
-    void* p = NULL;
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(p = malloc(8));
-        free(p);
-    }
-    state.SetItemsProcessed(state.iterations());
+void BM_free(benchmark::State &state) {
+  void *p = NULL;
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(p = malloc(8));
+    free(p);
+  }
+  state.SetItemsProcessed(state.iterations());
 }
 
-void BM_type_erased_free(benchmark::State& state) {
-    void* p = NULL;
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(p = malloc(8));
-        ScopeGuardTypeErased::ScopeGuard SG([&] { free(p); });
-    }
-    state.SetItemsProcessed(state.iterations());
+void BM_type_erased_free(benchmark::State &state) {
+  void *p = NULL;
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(p = malloc(8));
+    ScopeGuardTypeErased::ScopeGuard SG([&] { free(p); });
+  }
+  state.SetItemsProcessed(state.iterations());
 }
 
-void BM_template_free(benchmark::State& state) {
-    void* p = NULL;
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(p = malloc(8));
-        auto SG = ScopeGuardTemplate::MakeGuard([&] { free(p); });
-    }
-    state.SetItemsProcessed(state.iterations());
+void BM_template_free(benchmark::State &state) {
+  void *p = NULL;
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(p = malloc(8));
+    auto SG = ScopeGuardTemplate::MakeGuard([&] { free(p); });
+  }
+  state.SetItemsProcessed(state.iterations());
 }
 
-void BM_count(benchmark::State& state) {
-    volatile int i = 0;
-    for (auto _ : state) {
-        REPEAT({
-        benchmark::DoNotOptimize(++i);
-        --i;
-        });
-    }
-    state.SetItemsProcessed(32*state.iterations());
-    if (i) abort();
+void BM_count(benchmark::State &state) {
+  volatile int i = 0;
+  for (auto _ : state) {
+    REPEAT({
+      benchmark::DoNotOptimize(++i);
+      --i;
+    });
+  }
+  state.SetItemsProcessed(32 * state.iterations());
+  if (i)
+    abort();
 }
 
-void BM_type_erased_count(benchmark::State& state) {
-    volatile int i = 0;
-    for (auto _ : state) {
-        REPEAT({
-        benchmark::DoNotOptimize(++i);
-        ScopeGuardTypeErased::ScopeGuard SG([&] { --i; });
-        });
-    }
-    state.SetItemsProcessed(32*state.iterations());
-    if (i) abort();
+void BM_type_erased_count(benchmark::State &state) {
+  volatile int i = 0;
+  for (auto _ : state) {
+    REPEAT({
+      benchmark::DoNotOptimize(++i);
+      ScopeGuardTypeErased::ScopeGuard SG([&] { --i; });
+    });
+  }
+  state.SetItemsProcessed(32 * state.iterations());
+  if (i)
+    abort();
 }
 
-void BM_template_count(benchmark::State& state) {
-    volatile int i = 0;
-    for (auto _ : state) {
-        REPEAT({
-        benchmark::DoNotOptimize(++i);
-        auto SG = ScopeGuardTemplate::MakeGuard([&] { --i; });
-        });
-    }
-    state.SetItemsProcessed(32*state.iterations());
-    if (i) abort();
+void BM_template_count(benchmark::State &state) {
+  volatile int i = 0;
+  for (auto _ : state) {
+    REPEAT({
+      benchmark::DoNotOptimize(++i);
+      auto SG = ScopeGuardTemplate::MakeGuard([&] { --i; });
+    });
+  }
+  state.SetItemsProcessed(32 * state.iterations());
+  if (i)
+    abort();
 }
 
 BENCHMARK(BM_type_erased_noop);

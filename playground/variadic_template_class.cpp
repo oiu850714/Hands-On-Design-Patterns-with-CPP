@@ -1,6 +1,6 @@
 #include <iostream>
 
-template <typename ...T> struct Group;
+template <typename... T> struct Group;
 
 template <typename T1> struct Group<T1> {
   T1 t1_;
@@ -22,27 +22,22 @@ template <typename T1, typename... T> struct Group<T1, T...> : Group<T...> {
   explicit operator T1 &() { return t1_; }
 };
 
-
 class C1 {
 public:
-  operator int() {
-    return 2;
-  }
+  operator int() { return 2; }
 };
 
 class C2 : public C1 {
 public:
-  operator int() {
-    return 4;
-  }
+  operator int() { return 4; }
 };
 
 int main() {
   Group<int, int, int> g1(1, 3, 5);
   std::cout << static_cast<int>(g1) << "\n"; // output "1"
-  // result depends on the order of the non-variadic and variadic template parameter
-  // if the ctor declaration becomes Group(T &&... t, T1 &&t1)
-  // then the output becomes "5"
+  // result depends on the order of the non-variadic and variadic template
+  // parameter if the ctor declaration becomes Group(T &&... t, T1 &&t1) then
+  // the output becomes "5"
 
   C2 c2;
   std::cout << static_cast<int>(c2) << "\n"; // output 4
